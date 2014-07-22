@@ -1,7 +1,7 @@
 /*
  * CSE 351 HW1 (Data Lab - Pointers)
  *
- * <Please put your name and userid here>
+ * <Tiago Lauletta Modesto and tiagolamo@live.com>
  *
  * pointer.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -84,9 +84,10 @@ int intSize() {
   int intArray[10];
   int * intPtr1;
   int * intPtr2;
-  // TODO: Write code to compute size of an integer.
+  intPtr1 = intArray;
+  intPtr2 = (intArray +1);
 
-  return 2;
+  return ((unsigned long)intPtr2) - ((unsigned long)intPtr1);
 }
 
 /*
@@ -96,9 +97,10 @@ int doubleSize() {
   double doubArray[10];
   double * doubPtr1;
   double * doubPtr2;
-  // TODO: Write code to compute size of a double.
+  doubPtr1 = doubArray;
+  doubPtr2 = (doubArray +1);
 
-  return 2;
+  return ((unsigned long)doubPtr2) - ((unsigned long)doubPtr1);
 }
 
 /*
@@ -108,9 +110,10 @@ int pointerSize() {
   double * ptrArray[10];
   double ** ptrPtr1;
   double ** ptrPtr2;
-  // TODO: Write code to compute size of a pointer.
+  ptrPtr1 = ptrArray;
+  ptrPtr2 = (ptrArray +1);
 
-  return 2;
+  return ((unsigned long)ptrPtr2) - ((unsigned long)ptrPtr1);
 }
 
 /*
@@ -121,12 +124,11 @@ int changeValue() {
   int intArray[10];
   int * intPtr1 = intArray;
   int * intPtr2;
-  // TODO: Write code to change value of intArray[5] to 351 using only
-  //       intPtr1 and the + operator.
+  *(intPtr1 + 5) = 255;
+  *(intPtr1 + 5) = (*(intPtr1 + 5)) + 96;
 
   return intArray[5];
 }
-
 
 /*
  * Return 1 if ptr1 and ptr2 are within the *same* 64-byte aligned
@@ -135,8 +137,12 @@ int changeValue() {
  * Operators / and % and loops are NOT allowed.
  */
 int withinSameBlock(int * ptr1, int * ptr2) {
-  // TODO
-  return 2;
+  return ((ptr1 - ptr2) == 0) |
+         ((ptr1 - ptr2) == 4) |
+         ((ptr1 - ptr2) == 8) |
+         ((ptr2 - ptr1) == 0) |
+         ((ptr2 - ptr1) == 4) |
+         ((ptr2 - ptr1) == 8);
 }
 
 /*
@@ -144,8 +150,7 @@ int withinSameBlock(int * ptr1, int * ptr2) {
  * 0 otherwise.
  */
 int withinArray(int * intArray, int size, int * ptr) {
-  // TODO
-  return 2;
+  return (ptr >= intArray) & (ptr < (intArray+size));
 }
 /*
  * Return x with the n bits that begin at position p inverted (i.e.,
@@ -153,6 +158,11 @@ int withinArray(int * intArray, int size, int * ptr) {
  * the indices of x to begin with the low-order bit numbered as 0.
  */
 int invert(int x, int p, int n) {
-  // TODO
-  return 2;
+  int mask = ((1<<31)>>n)<<1;
+  int logical_shift_mask = ~(((1<<31)>>(32-n-p))<<1);
+  int p_mask = (mask>>(32-n-p))&logical_shift_mask;
+  int original = x & p_mask;
+  int inverted = (~original) & p_mask;
+
+  return (x & (~p_mask)) | inverted;
 }

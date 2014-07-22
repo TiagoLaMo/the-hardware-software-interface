@@ -1,7 +1,7 @@
 /* 
  * CSE 351 HW1 (Data Lab )
  * 
- * <Please put your name and userid here>
+ * <Tiago Lauletta Modesto and tiagolamo@live.com>
  * 
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -120,7 +120,7 @@ NOTES:
  *   Rating: 1
  */
 int bitAnd(int x, int y) {
-  return 2;
+  return ~((~x)|(~y));
 }
 /* 
  * bitXor - x^y using only ~ and & 
@@ -130,7 +130,7 @@ int bitAnd(int x, int y) {
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+  return ~((~((~x)&y)) & (~(x&(~y))));
 }
 /* 
  * thirdBits - return word with every third bit (starting from the LSB) set to 1
@@ -140,7 +140,8 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int thirdBits(void) {
-  return 2;
+  int base = 0x49;
+  return base | (base << 9) | (base << 18) | (base << 27);
 }
 // Rating: 2
 /* 
@@ -153,7 +154,12 @@ int thirdBits(void) {
  *   Rating: 2
  */
 int fitsBits(int x, int n) {
-  return 2;
+  int n_bits = n + ((~1) +1);
+  int invalid_bits = x >> n_bits;
+  int is_pos_valid = !invalid_bits;
+  int all_ones = ~0;
+  int is_neg_valid = !(invalid_bits^all_ones);
+  return is_pos_valid | is_neg_valid;
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -164,7 +170,10 @@ int fitsBits(int x, int n) {
  *  Rating: 2
  */
 int sign(int x) {
-  return 2;
+  int zero_mask = ((!(!x))<<31)>>31;
+  int neg_mask = x>>31;
+  int pos_return = 1;
+  return zero_mask & (neg_mask | pos_return);
 }
 /* 
  * getByte - Extract byte n from word x
@@ -175,7 +184,7 @@ int sign(int x) {
  *   Rating: 2
  */
 int getByte(int x, int n) {
-  return 2;
+  return (x >> (n << 3)) & 0xFF;
 }
 // Rating: 3
 /* 
@@ -187,7 +196,8 @@ int getByte(int x, int n) {
  *   Rating: 3 
  */
 int logicalShift(int x, int n) {
-  return 2;
+  int mask = ~(((1<<31)>>n)<<1);
+  return (x>>n)&mask;
 }
 /* 
  * addOK - Determine if can compute x+y without overflow
@@ -198,7 +208,16 @@ int logicalShift(int x, int n) {
  *   Rating: 3
  */
 int addOK(int x, int y) {
-  return 2;
+  int msbit = 1<<31;
+  int msbit_x = x & msbit;
+  int msbit_y = y & msbit;
+  int sum = x + y;
+  int msbit_sum = sum & msbit;
+  int xor_xy = msbit_x^msbit_y;
+  int different_sign = (xor_xy >> 31) & 0x01;
+  int same_sign = ((!xor_xy)<<31)>>31;
+  int xor_xsum = msbit_x^msbit_sum;
+  return (same_sign&(!(xor_xsum))) | different_sign;
 }
 // Rating: 4
 /* 
@@ -220,7 +239,7 @@ int bang(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  return ((((!(!x))<<31)>>31)&y) | ((((!x)<<31)>>31)&z);
 }
 // Extra Credit: Rating: 4
 /*
@@ -232,5 +251,7 @@ int conditional(int x, int y, int z) {
  *   Rating: 4
  */
 int isPower2(int x) {
-  return 2;
+  int is_not_zero = ~(((!x)<<31)>>31);
+  int is_not_neg = ~(x>>31);
+  return is_not_zero & is_not_neg & 0x01;
 }
