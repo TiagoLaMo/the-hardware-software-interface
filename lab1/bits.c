@@ -228,7 +228,12 @@ int addOK(int x, int y) {
  *   Rating: 4 
  */
 int bang(int x) {
-  return 2;
+  int s1 = x 	| (x<<16);
+  int s2 = s1	| (s1<<8);
+  int s3 = s2   | (s2<<4);
+  int s4 = s3	| (s3<<2);
+  int s5 = s4	| (s4<<1);
+  return (s5>>31)+1;
 }
 // Extra Credit: Rating: 3
 /* 
