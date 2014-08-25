@@ -143,7 +143,7 @@ static void insertFreeBlock(BlockInfo* freeBlock) {
   if (oldHead != NULL) {
     oldHead->prev = freeBlock;
   }
-  //  freeBlock->prev = NULL;
+  freeBlock->prev = NULL;
   FREE_LIST_HEAD = freeBlock;
 }
 
@@ -244,6 +244,7 @@ static void requestMoreSpace(size_t reqSize) {
     printf("ERROR: mem_sbrk failed in requestMoreSpace\n");
     exit(0);
   }
+
   newBlock = (BlockInfo*)POINTER_SUB(mem_sbrk_result, WORD_SIZE);
 
   /* initialize header, inherit TAG_PRECEDING_USED status from the
@@ -268,7 +269,6 @@ static void requestMoreSpace(size_t reqSize) {
   insertFreeBlock(newBlock);
   coalesceFreeBlock(newBlock);
 }
-
 
 /* Initialize the allocator. */
 int mm_init () {
@@ -310,19 +310,24 @@ int mm_init () {
 
   // set the head of the free list to this new free block.
   FREE_LIST_HEAD = firstFreeBlock;
+
+  
   return 0;
 }
 
 
 // TOP-LEVEL ALLOCATOR INTERFACE ------------------------------------
 
+static void examine_heap();
 
 /* Allocate a block of size size and return a pointer to it. */
 void* mm_malloc (size_t size) {
   size_t reqSize;
   BlockInfo * ptrFreeBlock = NULL;
+  BlockInfo * ptrNextBlock = NULL;
   size_t blockSize;
   size_t precedingBlockUseTag;
+  void* ptr;
 
   // Zero-size requests get NULL.
   if (size == 0) {
@@ -345,17 +350,75 @@ void* mm_malloc (size_t size) {
   // Implement mm_malloc.  You can change or remove any of the above
   // code.  It is included as a suggestion of where to start.
   // You will want to replace this return statement...
-  return NULL; }
+  ptrFreeBlock = searchFreeList(reqSize);
+
+  //if we don't find a free bock, request more space from OS
+  if(ptrFreeBlock == NULL)
+  {
+    requestMoreSpace(reqSize);
+    ptrFreeBlock = searchFreeList(reqSize);
+    //if we still don't have the free block, nothing to do, just return NULL
+    if(ptrFreeBlock  == NULL)
+    {
+      return NULL; 
+    }
+  }
+
+  //if the block has space for another block we shold split it
+  blockSize = (SIZE(ptrFreeBlock->sizeAndTags) - reqSize);
+  if(blockSize >= MIN_BLOCK_SIZE)
+  {
+    //change the size of the current block and tag it
+    precedingBlockUseTag = ptrFreeBlock->sizeAndTags & TAG_PRECEDING_USED;
+    ptrFreeBlock->sizeAndTags = reqSize | TAG_USED | precedingBlockUseTag;
+    ptr = (void*)POINTER_ADD(ptrFreeBlock, WORD_SIZE);
+    removeFreeBlock(ptrFreeBlock);
+
+    //change the size of the next block and tag it as the preceding been used
+    ptrNextBlock = (BlockInfo*)POINTER_ADD(ptrFreeBlock, reqSize);
+    ptrNextBlock->sizeAndTags = blockSize | TAG_PRECEDING_USED;
+    ptrNextBlock->next = NULL;
+    ptrNextBlock->prev = NULL;
+    *((size_t*)POINTER_ADD(ptrNextBlock, (blockSize - WORD_SIZE))) = ptrNextBlock->sizeAndTags;
+    insertFreeBlock(ptrNextBlock);
+  }
+  else
+  {
+    ptrFreeBlock->sizeAndTags |= TAG_USED;
+    ptr = (void*)POINTER_ADD(ptrFreeBlock, WORD_SIZE);
+    removeFreeBlock(ptrFreeBlock);
+    *((size_t*)POINTER_ADD(ptrFreeBlock, SIZE(ptrFreeBlock->sizeAndTags))) |= TAG_PRECEDING_USED;
+  }
+
+  return ptr;
+}
 
 /* Free the block referenced by ptr. */
 void mm_free (void *ptr) {
   size_t payloadSize;
   BlockInfo * blockInfo;
   BlockInfo * followingBlock;
+  size_t blockSize;
 
   // Implement mm_free.  You can change or remove the declaraions
   // above.  They are included as minor hints.
+  blockInfo = (BlockInfo*)POINTER_SUB(ptr, WORD_SIZE);
+  blockInfo->sizeAndTags &= ~TAG_USED;
+  blockInfo->next = NULL;
+  blockInfo->prev = NULL;
+  blockSize = SIZE(blockInfo->sizeAndTags);
+  *((size_t*)POINTER_ADD(blockInfo, (blockSize - WORD_SIZE))) = blockInfo->sizeAndTags;
 
+  followingBlock = (BlockInfo*)POINTER_ADD(blockInfo, blockSize);
+  followingBlock->sizeAndTags &= ~TAG_PRECEDING_USED;
+  if((followingBlock->sizeAndTags & TAG_USED) == 0)
+  {
+    blockSize = SIZE(followingBlock->sizeAndTags);
+    *((size_t*)POINTER_ADD(followingBlock, (blockSize - WORD_SIZE))) = followingBlock->sizeAndTags;
+  }
+
+  insertFreeBlock(blockInfo);
+  coalesceFreeBlock(blockInfo);
 }
 
 /* Print the heap by iterating through it as an implicit free list. */
